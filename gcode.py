@@ -9,6 +9,7 @@ MEIE 4810 Introduction to Human Spaceflight at Columbia University.
 """
 
 import math
+import numpy as np
 
 """
 TODO revise assumptions
@@ -41,6 +42,7 @@ class GCode(object):
         self.lr_base_offset = [0, 0, 0]
         self.feed_rate = 2000
         self.step_size = 10
+        self.parabola_coefficient = 1.5
 
     def set_neutral(self):
         self.neutral_point = self.goto_point
@@ -62,12 +64,15 @@ class GCode(object):
         print("G21 ; This program requires operations with the gcode millemeter setting")
 
     def move_brick_to_placement(self, start, stop):
+        # This function picks up a brick at the start point, moves it to the stop point, puts it down, and returns to
+        # the start point.
         """
+        Development notes
         LINEAR INTERPOLATION gcode ALGORITHM (getting to place and from it)
         1 calculate total distance
             a) start at pickup point (likely to be close to z=0
             b) terminal approach to placement is at least 20mm from both pickup and putdown (that terminate at same
-               height?) - discretize in segments of 5 mm
+               height?) - discretize in segments of 5 mm??
             c) third point is midpoint of them + function of the linear distance between them up (if  closer dont go as far up)
             d) find inverse parabola using maths
         2 set variable for max distance between points
@@ -86,22 +91,94 @@ class GCode(object):
         stop_z = stop[2]
         parabola_stop_z = stop[2] + separation_height
         parabola_stop = [stop_x, stop_y, parabola_stop_z]
+        pickup = 999
+        putdown = -999
 
-        # Motion commands
+        # Pickup & place brick
+        self.print_command([pickup, start_y, start_z])
         self.move_vertical(start, separation_height)
         start[2] += separation_height
-        self.move_parabola_xz(start, parabola_stop)
-        self.move_parabola_yz(start, parabola_stop)
-        self.move_vertical(parabola_stop, (-1*separation_height))
+        start_z = start[2]
+        stop_z += separation_height
+        self.move_parabola_xz([start_x, start_y, start_z], [stop_x, start_y, stop_z])
+        self.move_parabola_yz([stop_x, start_y, stop_z], [stop_x, stop_y, stop_z])  # x & z coord.s set by last call
+        self.move_vertical([stop_x, stop_y, stop_z], (-1*separation_height))
+        temp = parabola_stop[0]
+        parabola_stop[0] = -999
+        parabola_stop[0] = temp
+        self.print_command([putdown, stop_y, stop_z])
+
+        # Return to starting position
+        self.move_vertical([stop_x, stop_y, stop_z], separation_height)
+        self.move_parabola_xz([stop_x, stop_y, stop_z], [start_x, stop_y, start_z])
+        self.move_parabola_yz([start_x, stop_y, start_z], [start_x, start_y, start_z])
+        self.move_vertical([start_x, start_y, start_z], (-1*separation_height))
+
 
     def move_parabola_xz(self, start, stop):
-        #Moves in the xz frame
+        # Moves via parabolic arc in the xz frame
         start_x = start[0]
         start_z = start[2]
         stop_x = stop[0]
         stop_z = stop[2]
         midpoint_x = (start_x + stop_x) / 2
-        midpoint_z = 1.5 * midpoint_x
+        midpoint_z = self.parabola_coefficient * midpoint_x
+        self.make_parabola(start_x, start_z, stop_x, stop_z, midpoint_x, midpoint_z, "y", start[1])
+
+    def move_parabola_yz(self, start, stop):
+        # Moves via parabolic arc in the yz frame
+        start_y = start[1]
+        start_z = start[2]
+        stop_y = stop[1]
+        stop_z = stop[2]
+        mid_point_y = (start_y + stop_y) / 2
+        midpoint_z = self.parabola_coefficient * mid_point_y
+        self.make_parabola(start_y, start_z, stop_y, stop_z, mid_point_y, midpoint_z, "x", start[0])
+
+    def make_parabola(self, x1, y1, x2, y2, x3, y3, static_var, static_val):
+        """
+        This particular function was not solely written by a member of the Project JENGA team.
+        The code in this function was adapted with modification from the GitHub site of Chris Williams
+        http://chris35wills.github.io/parabola_python/
+
+        NOTE Unlike move_vertical(), in which there is no horizontal motion, the step size calculation here is
+        based on the division of the non-z coordinate distance traveled into steps based on the maximum step size.
+        :param x1: defines x or y coordinate of point 1
+        :param y1: defines z coordinate of point 1
+        :param x2: defines x or y coordinate of point 2
+        :param y2: defines z coordinate of point 2
+        :param x3: defines x or y coordinate of point 3
+        :param y3: defines z coordinate of point 3
+        :param static_var: indicates which value, x or y, is unchanged by this particular function call
+        :param static_val: indicates the value of the variable unchanged by this function call
+        """
+        denom = (x1 - x2) * (x1 - x3) * (x2 - x3)
+        a = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / denom
+        b = (x3 * x3 * (y1 - y2) + x2 * x2 * (y3 - y1) + x1 * x1 * (y2 - y3)) / denom
+        c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom
+        x_pos = np.arange(x1, x2, self.step_size)
+        """
+        DELETE THIS after verifying code works
+        if static_var == "x":  # creating a yz graph
+            # x_pos = np.arange(self.ll_base[0], self.lr_base[0], self.step_size)
+            # confusingly, x_pos refers to the y dimension in the line of code above
+        elif static_var == "y":  # creating an xz graph
+            x_pos = np.arange(self.ll_base[1], self.ul_base[1], self.step_size)
+        """
+        z_pos = []  # stored so if we wanted to do something with the coordinate pairs we could
+        # Calculate y values
+        for x in range(len(x_pos)):
+            x_val = x_pos[x]
+            z = (a * (x_val ** 2)) + (b * x_val) + c
+            z_pos.append(z)
+            if static_var == "x":
+                self.print_command([static_val, x_val, z])  # If x is static it never changes
+            elif static_var == "y":
+                self.print_command([x_val, static_val, z])  # If y is static it never changes
+            else:
+                print("; this program can only create parabolas in the xz and yz planes.\n")
+                break
+
 
     def move_vertical(self, start, h):
         """
@@ -121,12 +198,12 @@ class GCode(object):
         num_steps = math.ceil(temp)
 
         while start_z < stop_z:
-            #calculate new intermediate position
+            # calculate new intermediate position
             intermediate[2] = intermediate[2] + self.step_size
-            #convert to change in height & print instruction
+            # convert to change in height & print instruction
             self.print_command(intermediate)
             if stop_z - intermediate[2] < self.step_size:
-                #calculate new intermediate position
+                #  calculate new intermediate position
                 intermediate[2] = intermediate[2] + (stop_z - intermediate[2])
                 #convert to change in height & print instruction
                 self.print_command(intermediate)
@@ -151,11 +228,11 @@ class GCode(object):
 
         if x_pos == 999:
             # Pickup
-            print("M8 ; ")
+            print("M8 ; \n")
 
         elif x_pos == -999:
             # Putdown
-            print("M9 ; ")
+            print("M9 ; \n")
 
         else:
             # Motion calculations
@@ -207,5 +284,5 @@ class GCode(object):
             temp_z = (z_pos + z_end_offset + z_base_pos) ** 2
             lr_output = math.sqrt(temp_x + temp_y + temp_z)
 
-            #Final output
-            print("G1 X%d, Y%d, Z%d, E%d ; ") % (ul_output, ur_output, ll_output, lr_output)
+            #Print this statement
+            print("G1 X%d, Y%d, Z%d, E%d ; \n") % (ul_output, ur_output, ll_output, lr_output)
