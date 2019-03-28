@@ -15,8 +15,10 @@ MEIE 4810 Introduction to Human Spaceflight at Columbia University.
 """
 
 import gcode
+import block
 
-path_gcode = gcode.GCode()
+g = gcode.GCode()
+brick = block.Block()
 
 class Basic(object):
     """
@@ -25,27 +27,78 @@ class Basic(object):
 
     """
     def __init__(self):
-        self.x = 0
+        self.x = 0  # enables user to "manually" direct motion of the assembly
         self.y = 0
         self.z = 0
-        self.e = 0
 
-    def set_get_point(self, x, y, z, e):
-        path_gcode.goto_x = x
-        path_gcode.goto_y = y
-        path_gcode.goto_z = z
-        path_gcode.goto_e = e
-        path_gcode.set_pickup_point()
+    def load_pickup(self, x, y, z):
+        g.set_goto_point(x, y, z)
+        g.set_pickup_point()
 
-    def set_put_point(self, x, y, z, e):
-        path_gcode.goto_x = x
-        path_gcode.goto_y = y
-        path_gcode.goto_z = z
-        path_gcode.goto_e = e
-        path_gcode.set_placement_point()
+    def load_putdown(self, x, y, z):
+        g.set_goto_point(x, y, z)
+        g.set_placement_point()
+
+    def load_neutral(self, x, y, z):
+        g.set_goto_point(x, y, z)
+        g.set_neutral()
 
     def algo(self):
-        self.set_get_point()
+        g.set_units()
+        neutral = g.neutral_point
+        pickup = [-800, 0, 0]
+        self.load_pickup(pickup)
+
+        #Row 1 - 4 bricks
+        putdown = [0,0,0]
+        self.load_putdown(putdown)
+        g.move_parabola_xyz(neutral, pickup)
+        g.move_brick_to_placement(pickup, putdown)
+        putdown[0] += brick.block_l
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+        putdown[0] += brick.block_l
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+        putdown[0] += brick.block_l
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+
+        #Row 2 - 4 bricks offset
+        putdown[2] += brick.block_h
+        putdown[0] = 0 + (brick.block_l/2)
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+        putdown[0] = 0 + brick.block_l
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+        putdown[0] = 0 + brick.block_l
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+        putdown[0] = 0 + brick.block_l
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+
+        # Row 3 - 4 bricks offset back to the original condition
+        putdown[2] += brick.block_h
+        putdown[0] = 0 - (brick.block_l/2)
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+        putdown[0] = 0 + brick.block_l
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+        putdown[0] = 0 + brick.block_l
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+        putdown[0] = 0 + brick.block_l
+        self.load_putdown(putdown)
+        g.move_brick_to_placement(pickup, putdown)
+
+        #move back to neutral
+        g.move_vertical(300)
+        self.load_pickup(pickup[0], pickup[1], (pickup[2]+300))
+        g.move_horizontal(pickup, neutral)
+
 
 class Fancy(object):
 
