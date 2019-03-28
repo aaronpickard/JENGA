@@ -28,7 +28,7 @@ Assumptions:
 
 class GCode(object):
     def __init__(self):
-        self.neutral_point = [0, 0, 0] # x,y,z
+        self.neutral_point = [0, 0, 500] # x,y,z
         self.pickup_point = [0, 0, 0]
         self.placement_point = [0, 0, 0]
         self.goto_point = [0, 0, 0]
@@ -43,6 +43,7 @@ class GCode(object):
         self.feed_rate = 2000
         self.step_size = 10
         self.parabola_coefficient = 1.5
+        self.separation_height = 75 #3x brick height, or brick + pyramid + 25mm height
 
     def set_neutral(self):
         self.neutral_point = self.goto_point
@@ -63,6 +64,12 @@ class GCode(object):
     def set_units(self):
         print("G21 ; This program requires operations with the gcode millemeter setting")
 
+    def set_separation_height(self, h):
+        self.separation_height = h
+
+    def set_step_size(self, s):
+        self.step_size = s
+
     def move_brick_to_placement(self, start, stop):
         # This function picks up a brick at the start point, moves it to the stop point, puts it down, and returns to
         # the start point.
@@ -82,38 +89,36 @@ class GCode(object):
         """
 
         # Variable declaration
-        separation_height = 20
         start_x = start[0]
         start_y = start[1]
         start_z = start[2]
         stop_x = stop[0]
         stop_y = stop[1]
         stop_z = stop[2]
-        parabola_stop_z = stop[2] + separation_height
+        parabola_stop_z = stop[2] + self.separation_height
         parabola_stop = [stop_x, stop_y, parabola_stop_z]
         pickup = 999
         putdown = -999
 
         # Pickup & place brick
         self.print_command([pickup, start_y, start_z])
-        self.move_vertical(start, separation_height)
-        start[2] += separation_height
+        self.move_vertical(start, self.separation_height)
+        start[2] += self.separation_height
         start_z = start[2]
-        stop_z += separation_height
+        stop_z += self.separation_height
         self.move_parabola_xz([start_x, start_y, start_z], [stop_x, start_y, stop_z])
         self.move_parabola_yz([stop_x, start_y, stop_z], [stop_x, stop_y, stop_z])  # x & z coord.s set by last call
-        self.move_vertical([stop_x, stop_y, stop_z], (-1*separation_height))
+        self.move_vertical([stop_x, stop_y, stop_z], (-1*self.separation_height))
         temp = parabola_stop[0]
         parabola_stop[0] = -999
         parabola_stop[0] = temp
         self.print_command([putdown, stop_y, stop_z])
 
         # Return to starting position
-        self.move_vertical([stop_x, stop_y, stop_z], separation_height)
+        self.move_vertical([stop_x, stop_y, stop_z], self.separation_height)
         self.move_parabola_xz([stop_x, stop_y, stop_z], [start_x, stop_y, start_z])
         self.move_parabola_yz([start_x, stop_y, start_z], [start_x, start_y, start_z])
-        self.move_vertical([start_x, start_y, start_z], (-1*separation_height))
-
+        self.move_vertical([start_x, start_y, start_z], (-1*self.separation_height))
 
     def move_parabola_xz(self, start, stop):
         # Moves via parabolic arc in the xz frame
@@ -124,6 +129,11 @@ class GCode(object):
         midpoint_x = (start_x + stop_x) / 2
         midpoint_z = self.parabola_coefficient * midpoint_x
         self.make_parabola(start_x, start_z, stop_x, stop_z, midpoint_x, midpoint_z, "y", start[1])
+        # TODO this is always called first - could it be more efficient to not necessarily go down on to the
+        #  placement point since I'll only be on top of it in one direction?
+        #  What happens if I put the 3rd parabola point such that the start and stop points are on the same side as
+        #  the high point of the parabola? Does this affect path efficiency (defined by # of instructions printed)?
+        #  Does this limit the kinds of structures I can build?
 
     def move_parabola_yz(self, start, stop):
         # Moves via parabolic arc in the yz frame
@@ -133,7 +143,28 @@ class GCode(object):
         stop_z = stop[2]
         mid_point_y = (start_y + stop_y) / 2
         midpoint_z = self.parabola_coefficient * mid_point_y
-        self.make_parabola(start_y, start_z, stop_y, stop_z, mid_point_y, midpoint_z, "x", start[0])
+        self.make_parabola(start_y, stop_z, stop_y, stop_z, mid_point_y, midpoint_z, "x", start[0])
+        # TODO this is always called second & has a clearance parameter to make sure it doesnt hit another brick
+        #  so why shouldn't I do this step in the xy plane, without any of this parabola math?
+        #  Would removing vertical motion meaningfully increase the step size (and so decrease the number of steps
+        #  required for the move) by allowing more distance to be gained in horizontal motion?
+
+    def move_parabola_xyz(self, start, stop):
+        # NOT OPERATIONAL
+        # Moves via parabolic arc FIRST in the xz frame and THEN in the yz frame,
+        # combining the two move_parabola_wz() functions
+        start_x = start[0]
+        start_y = start[1]
+        start_z = start[2]
+        stop_x = stop[0]
+        stop_y = stop[1]
+        stop_z = stop[2]
+        midpoint_x = (start_x + stop_x) / 2
+        mid_point_y = (start_y + stop_y) / 2
+        midpoint_z = self.parabola_coefficient * midpoint_x
+        self.make_parabola(start_x, start_z, stop_x, stop_z, midpoint_x, midpoint_z, "y", start[1])
+        midpoint_z = self.parabola_coefficient * mid_point_y
+        self.make_parabola(start_y, stop_z, stop_y, stop_z, mid_point_y, midpoint_z, "x", start[0])
 
     def make_parabola(self, x1, y1, x2, y2, x3, y3, static_var, static_val):
         """
@@ -156,7 +187,7 @@ class GCode(object):
         a = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / denom
         b = (x3 * x3 * (y1 - y2) + x2 * x2 * (y3 - y1) + x1 * x1 * (y2 - y3)) / denom
         c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom
-        x_pos = np.arange(x1, x2, self.step_size)
+        x_pos = np.arange(x1, x2, self.step_size)  # x is the nonstatic var so this should be the range
         """
         DELETE THIS after verifying code works
         if static_var == "x":  # creating a yz graph
@@ -176,9 +207,8 @@ class GCode(object):
             elif static_var == "y":
                 self.print_command([x_val, static_val, z])  # If y is static it never changes
             else:
-                print("; this program can only create parabolas in the xz and yz planes.\n")
+                print("; make_parabola() can only create parabolas in the xz and yz planes.\n")
                 break
-
 
     def move_vertical(self, start, h):
         """
@@ -203,11 +233,55 @@ class GCode(object):
             # convert to change in height & print instruction
             self.print_command(intermediate)
             if stop_z - intermediate[2] < self.step_size:
-                #  calculate new intermediate position
+                # calculate new intermediate position
                 intermediate[2] = intermediate[2] + (stop_z - intermediate[2])
-                #convert to change in height & print instruction
+                # convert to change in height & print instruction
                 self.print_command(intermediate)
                 break
+
+    def move_horizontal(self, start, stop):
+        # This method works by stepping between coplanar start and stop points linearly.
+        # Usage is recommended only for points in the same z-plane (height).
+        """
+        1 get current location (x,y,z)
+        2 get intermediate end effector positions (x,y,z,p) - p is boolean
+        3 iterate through each intermediate position and from that convert to tether length
+        """
+        start_x = start[0]
+        start_y = start[1]
+        start_z = start[2]
+        stop_x = stop[0]
+        stop_y = stop[1]
+        stop_z = stop[2]
+        intermediate = [start_x, start_y, start_z]
+        # get unit vector
+        vector_x = start_x + stop_x
+        vector_y = start_y + stop_y
+        vector_z = start_z + stop_z
+        vector_mag = math.sqrt(vector_x**2 + vector_y**2 + vector_z**2)
+        unit_x = vector_x/vector_mag*self.step_size
+        unit_y = vector_y/vector_mag*self.step_size
+        unit_z = vector_z/vector_mag*self.step_size
+        unit = [unit_x, unit_y, unit_z]  # now I have a unit vector w/ length step_size
+
+        while (start_x != stop_x) or (start_y != stop_y) or (start_z != stop_z):
+            # calculate new intermediate position
+            if intermediate[0] != stop_x:
+                intermediate[0] += unit[0]
+                if intermediate[0] - stop_x < self.step_size:  # handles case where value is approaching stop value
+                    intermediate[0] += math.sqrt((intermediate[0]-stop_x)**2)  # this is their distance, right?
+            if intermediate[1] != stop_y:
+                intermediate[1] += unit[1]
+                if intermediate[1] - stop_y < self.step_size:
+                    intermediate[1] += math.sqrt((intermediate[1]-stop_y)**2)
+            if intermediate[2] != stop_z:
+                intermediate[2] += unit[2]
+                if intermediate[2] - stop_z < self.step_size:
+                    intermediate[2] += math.sqrt((intermediate[2]-stop_z)**2)
+            # convert to change in height & print instruction
+            self.print_command(intermediate)
+            # TODO how do I limit this in the case where the unit vector's size doesnt evenly divide the distance
+            #  between the start and stop points? That's what I'm missing for this to really be functional
 
     def print_command(self, position_list):
         """
@@ -284,5 +358,5 @@ class GCode(object):
             temp_z = (z_pos + z_end_offset + z_base_pos) ** 2
             lr_output = math.sqrt(temp_x + temp_y + temp_z)
 
-            #Print this statement
+            # Print this statement
             print("G1 X%d, Y%d, Z%d, E%d ; \n") % (ul_output, ur_output, ll_output, lr_output)
