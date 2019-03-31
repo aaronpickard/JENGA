@@ -44,61 +44,104 @@ class Basic(object):
         g.set_neutral()
 
     def algo(self):
+        #print("; INSTRUCTION SET BEGINS")
         g.set_units()
+        # g.set_output_file(output_file)
         neutral = g.neutral_point
         pickup = [-800, 0, 0]
-        self.load_pickup(pickup)
+        self.load_pickup(pickup[0], pickup[1], pickup[2])
 
         #Row 1 - 4 bricks
         putdown = [0,0,0]
-        self.load_putdown(putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
         g.move_parabola_xyz(neutral, pickup)
-        g.move_brick_to_placement(pickup, putdown)
+        g.pickup_brick(pickup)
+        g.move_brick_to_placement(pickup, putdown)  # brick 1
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         putdown[0] += brick.block_l
-        self.load_putdown(putdown)
-        g.move_brick_to_placement(pickup, putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+        g.move_brick_to_placement(pickup, putdown)  # brick 2
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         putdown[0] += brick.block_l
-        self.load_putdown(putdown)
-        g.move_brick_to_placement(pickup, putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+        g.move_brick_to_placement(pickup, putdown)  # brick 3
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         putdown[0] += brick.block_l
-        self.load_putdown(putdown)
-        g.move_brick_to_placement(pickup, putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+        g.move_brick_to_placement(pickup, putdown)  # brick 4
+
 
         #Row 2 - 4 bricks offset
         putdown[2] += brick.block_h
         putdown[0] = 0 + (brick.block_l/2)
-        self.load_putdown(putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         g.move_brick_to_placement(pickup, putdown)
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
         g.move_brick_to_placement(pickup, putdown)
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
         g.move_brick_to_placement(pickup, putdown)
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
         g.move_brick_to_placement(pickup, putdown)
 
         # Row 3 - 4 bricks offset back to the original condition
         putdown[2] += brick.block_h
         putdown[0] = 0 - (brick.block_l/2)
-        self.load_putdown(putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         g.move_brick_to_placement(pickup, putdown)
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
         g.move_brick_to_placement(pickup, putdown)
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
         g.move_brick_to_placement(pickup, putdown)
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
         putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown)
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
         g.move_brick_to_placement(pickup, putdown)
+        g.putdown_brick(putdown)
+        g.move_brick_to_placement(putdown, pickup)
+        g.pickup_brick(pickup)
 
-        #move back to neutral
-        g.move_vertical(300)
+        # move back to neutral
+        g.move_vertical(pickup, 300)
         self.load_pickup(pickup[0], pickup[1], (pickup[2]+300))
-        g.move_horizontal(pickup, neutral)
-
+        g.move_parabola_xyz(pickup, neutral)
+        # print("; INSTRUCTION SET ENDS")
+        # print("BEGIN move_horizontal(pickup, neutral)")
+        # g.move_horizontal(pickup, neutral)
+        # print("END move_horizontal(pickup, neutral)")
 
 class Fancy(object):
 
@@ -128,7 +171,7 @@ class Fancy(object):
     choices = {}
 
     #Units to mm
-    path_gcode.set_units()
+
 
     """
     Fancy Algorithm
@@ -162,7 +205,7 @@ class Fancy(object):
 
 
     def algo(self, g, σ_limit):
-        self.p =
+        pass
 
     """
     Backtrack()
@@ -182,7 +225,3 @@ class Fancy(object):
             if path_stack is None:
                 break
         return p, choices
-
-
-
-
