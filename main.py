@@ -11,18 +11,12 @@ MEIE 4810 Introduction to Human Spaceflight at Columbia University.
 import block
 import my_utils
 import gcode
+import path_to_wall
 
 my_block = block.Block()
 my_gcode = gcode.GCode()
-
-#define block parameters
-my_gcode.set_units()
-my_block.block_l = 50
-my_block.block_w = 25
-my_block.block_h = 25
+my_path = path_to_wall.Basic()
+my_path.algo()
 
 
 #block pickup location
-
-def user_defined_block_pickup():
-    #for instances where I want the user to do it
