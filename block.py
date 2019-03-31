@@ -13,13 +13,13 @@ Each brick is 50x25x25mm
 class Block(object):
 
     def __init__(self):
-        self.block_l = 0 #block length
-        self.block_w = 0 #block width
-        self.block_h = 0 #block height
-        self.pt_1_l_offset = 0 #offsets for the two pick-up points in 2 coordinates
-        self.pt_1_w_offset = 0
-        self.pt_2_l_offset = 0
-        self.pt_2_w_offset = 0
+        self.block_l = 50  # block length
+        self.block_w = 25  # block width
+        self.block_h = 25  # block height
+        self.pt_1_l_offset = 12.5  # offsets for the two pick-up points in 2 coordinates
+        self.pt_1_w_offset = 12.5  # TODO VERIFY THESE
+        self.pt_2_l_offset = 37.5
+        self.pt_2_w_offset = 12.5
 
     def set_block_length(self, n):
         self.block_l = n
