@@ -10,6 +10,9 @@ This repo is the site of the software developed for the project.
 # Project Participants
 Aaron Pickard, Albert Tai, Chris Fryer, Thomas Orr, Victoria Wang
 
+# Code Overview
+The goal of the software development in this project is to provide a meaningful instruction set to the hardware in a language that the hardware can understqnd. Due to participant familiarity with the architecture, Project JENGA is communicating with the hardware using gcode, and generting the gcode statements using Python files written according to the paradigm of Object Oriented Programming (OOP). The files' functions as well as the functions within the files are described below. A stretch goal of the software section is to begin to optimize the path planning of the assembly sequence. If it is possible within the timeframe to produce an instruction set that assembles the desired structure out of bricks, it would be advantageous to understand how it might be done more efficiently (efficiency is defined here in terms of lines of gcode output), in order to reduce the time and energy spent assembling structures so that they might be reallocated to other mission-critical purposes if this concept were to be deployed on a Mars mission.
+
 # Python Files
 ## block.py
 This file defines the notional brick we are using to build our structures and validate our architecture. Presently, each brick is 50mm x 25mm x 25mm, has two pyramid-shaped notches on top with bases of 25mm x 25mm to aid in construction, and is a hollow shell of 3D-printed plastic. The file defines the shape of the block in three dimensions, as well as the offsets necessary for the architecture to pick up and place the block appropriately using electromagnets and functions that can be used to adjust these values.
