@@ -41,7 +41,11 @@ class GCode(object):
         self.ur_base_offset = [0, 0, 0]
         self.ll_base_offset = [0, 0, 0]
         self.lr_base_offset = [0, 0, 0]
-        self.feed_rate = 2000
+        self.ul_dist = 0
+        self.ur_dist = 0
+        self.ll_dist = 0
+        self.lr_dist = 0
+        self.feed_rate = 20
         self.step_size = 10
         self.parabola_coefficient = 1.5
         self.separation_height = 75  #3x brick height, or brick + pyramid + 25mm height
@@ -67,12 +71,11 @@ class GCode(object):
 
     def set_feed_rate(self, f):   # feed rate in mm/m
         self.feed_rate = f
-        print("G1 F%d ; ") % self.feed_rate
+        print("G1 F" + str(self.feed_rate) + ";")
         if self.output_file is not None:
             file = open(self.output_file, "a")
             file.write("G1 F" + str(self.feed_rate) + " ; \n")
             file.close()
-
 
     def set_units(self):
         print("G21 ; This program requires operations with the gcode millemeter setting")
@@ -301,7 +304,8 @@ class GCode(object):
         unit_z = vector_z/vector_mag*self.step_size
         unit = [unit_x, unit_y, unit_z]  # now I have a unit vector w/ length step_size
 
-        while (start_x != stop_x) or (start_y != stop_y) or (start_z != stop_z):
+        self.print_comment("TEST move_horizontal")
+        while (abs(start_x - stop_x) > 0.001) or (abs(start_y - stop_y) > 0.001) or (abs(start_z - stop_z) > 0.001):
             # calculate new intermediate position
             if intermediate[0] != stop_x:
                 intermediate[0] += unit[0]
@@ -321,6 +325,13 @@ class GCode(object):
             # TODO how do I limit this in the case where the unit vector's size doesnt evenly divide the distance
             #  between the start and stop points? That's what I'm missing for this to really be functional
             # TODO how do I keep this function from running away in an infinite loop?
+
+    def print_comment(self, text):
+        print("; "+str(text))
+        if self.output_file is not None:
+            file = open(self.output_file, "a")
+            file.write("; "+str(text) +"\n")
+            file.close()
 
     def print_command(self, position_list):
         """
@@ -405,11 +416,28 @@ class GCode(object):
             temp_z = (z_pos + z_end_offset + z_base_pos) ** 2
             lr_output = math.sqrt(temp_x + temp_y + temp_z)
 
+
+            # Remove tether lengths (distance from tether points to [0,0,0]) from length
+            ul_output = ul_output - self.ul_dist
+            ur_output = ur_output - self.ur_dist
+            ll_output = ll_output - self.ll_dist
+            lr_output = lr_output - self.lr_dist
+
+            # Rounding to 2 decimal places
+            ul_output = round(ul_output, 2)
+            ur_output = round(ur_output, 2)
+            ll_output = round(ll_output, 2)
+            lr_output = round(lr_output, 2)
+
             # Print this statement
-            # print("G1 X%d, Y%d, Z%d, E%d ; \n") % (ul_output, ur_output, ll_output, lr_output)
-            print("G1 X"+str(ul_output)+", Y"+str(ur_output)+", Z"+str(ll_output)+", E"+str(lr_output)+" ;")
+            print("G1 X"+str(ul_output)+" Y"+str(ur_output)+" Z"+str(ll_output)+" E"+str(lr_output)+" ;")
             if self.output_file is not None:
                 file = open(self.output_file, "a")
-                file.write("G1 X"+str(ul_output)+", Y"+str(ur_output)+", Z"+str(ll_output)+", E"+str(lr_output)+" ; \n")
+                file.write("G1 X"+str(ul_output)+" Y"+str(ur_output)+" Z"+str(ll_output)+" E"+str(lr_output)+" ; \n")
                 file.close()
-            # TODO Enable users to make comments on commands in the path_to_wall function
+
+    def set_tether_length(self):
+        self.ul_dist = math.sqrt((self.ul_base[0])**2+(self.ul_base[1])**2)
+        self.ur_dist = math.sqrt((self.ur_base[0]) ** 2 + (self.ur_base[1]) ** 2)
+        self.ll_dist = math.sqrt((self.ll_base[0]) ** 2 + (self.ll_base[1]) ** 2)
+        self.lr_dist = math.sqrt((self.lr_base[0]) ** 2 + (self.lr_base[1]) ** 2)
