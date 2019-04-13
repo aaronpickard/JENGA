@@ -48,11 +48,19 @@ class GCode(object):
         self.feed_rate = 20
         self.step_size = 10
         self.parabola_coefficient = 1.5
-        self.separation_height = 75  #3x brick height, or brick + pyramid + 25mm height
-        self.output_file = "output.txt"
-        f = open(self.output_file, "w")
-        f.write("; Project JENGA Instruction set")
-        f.close()
+        self.separation_height = 75  # 3x brick height, or brick + pyramid + 25mm height
+        self.output_file = "output_instructions.txt"
+        self.output_csv = "output_coordinates.csv"
+        self.output_instruction_csv = "output_instructions.csv"
+        self.output_test = "output_test.txt"  # TODO create test file
+        if self.output_instruction_csv is not None:
+            file = open(self.output_instruction_csv, "a")
+            file.write("ul_output,ur_output,ll_output,lr_output\n")
+            file.close()
+        if self.output_csv is not None:
+            file = open(self.output_csv, "a")
+            file.write("x,y,z\n")
+            file.close()
 
     # def set_output_file(self, f):
         # self.output_file = f
@@ -367,6 +375,12 @@ class GCode(object):
                 file.close()
 
         else:
+            # plot points in csv file
+            if self.output_csv is not None:
+                file = open(self.output_csv, "a")
+                file.write(str(x_pos)+","+str(y_pos)+","+str(z_pos)+"\n")
+                file.close()
+
             # Motion calculations
             # Upper left base
             x_end_offset = self.ul_base_offset[0]
@@ -434,6 +448,10 @@ class GCode(object):
             if self.output_file is not None:
                 file = open(self.output_file, "a")
                 file.write("G1 X"+str(ul_output)+" Y"+str(ur_output)+" Z"+str(ll_output)+" E"+str(lr_output)+" ; \n")
+                file.close()
+            if self.output_instruction_csv is not None:
+                file = open(self.output_instruction_csv, "a")
+                file.write(str(ul_output)+","+str(ur_output)+","+str(ll_output)+","+str(lr_output)+"\n")
                 file.close()
 
     def set_tether_length(self):
