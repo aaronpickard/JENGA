@@ -9,12 +9,12 @@ MEIE 4810 Introduction to Human Spaceflight at Columbia University.
 """
 
 import block
-import my_utils
-import gcode
+# import my_utils
+# import gcode
 import path_to_wall
 
 my_block = block.Block()
-my_gcode = gcode.GCode()
+# my_gcode = gcode.GCode()
 my_path = path_to_wall.Basic()
 my_path.algo()
 
