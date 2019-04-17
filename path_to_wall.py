@@ -37,26 +37,41 @@ class Basic(object):
         g.set_goto_point(x, y, z)
         g.set_neutral()
 
-    def mover(self, pickup, putdown):
+    def move_brick(self, pickup, putdown):
         g.pickup_brick(pickup)
+        g.move_vertical(pickup, g.separation_height)
+        pickup = [pickup[0], pickup[1], (pickup[2] + g.separation_height)]
+        putdown_alias = [putdown[0], putdown[1], (putdown[2] + g.separation_height)]
+        self.move_lateral(pickup, putdown_alias)
+        g.move_down(putdown_alias, g.separation_height)
+        g.putdown_brick(g.current_point)
+
+    def move_back_to_pickup(self):
+        pickup = g.pickup_point
+        g.move_vertical(g.current_point, g.separation_height)
+        pickup = [pickup[0], pickup[1], (pickup[2] + g.separation_height)]
+        self.move_lateral(g.current_point, pickup)
+        g.move_down(pickup, g.separation_height)
+
+    def move_lateral(self, pickup, putdown):
         g.move_orrian_algo(pickup, putdown)
-        g.putdown_brick(putdown)
+
         # g.move_orrian_algo(putdown, pickup) TODO DELETE COMMENT
 
     def next_brick_in_x_row(self, putdown):
         putdown[0] += brick.block_l
         self.load_putdown(putdown[0], putdown[1], putdown[2])
-    
+
     def next_brick_in_y_row(self, putdown):
         putdown[1] += brick.block_w
         self.load_putdown(putdown[0], putdown[1], putdown[2])
 
     def next_horizontal_x_row(self, putdown):
         pass
-    
+
     def next_horizontal_y_row(self, putdown):
         pass
-        
+
     def next_vertically_stacked_row(self, putdown, offset_sign):
         if offset_sign == "+":
             putdown[0] = putdown[0] + (brick.block_l/2)
@@ -90,30 +105,33 @@ class Basic(object):
         g.print_comment("Row 1 - 4 bricks")
         i = 0
         while i < 4:
-            self.mover(pickup, putdown)
+            self.move_brick(pickup, putdown)
+            self.move_back_to_pickup()
             self.next_brick_in_x_row(putdown)
             i += 1
 
         # Adjusts putdown point back to original position
         putdown = [0, 0, 0]
         self.load_putdown(putdown[0], putdown[1], putdown[2])
-        self.next_vertically_stacked_offset_row(putdown, "+")
+        self.next_vertically_stacked_row(putdown, "+")
 
         g.print_comment("Row 2 - 4 bricks offset")
         i = 0
         while i < 4:
-            self.mover(pickup, putdown)
+            self.move_brick(pickup, putdown)
+            self.move_back_to_pickup()
             self.next_brick_in_x_row(putdown)
             i += 1
 
-        # Undoes offset
-        putdown = [0, 0, 0]
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
 
         g.print_comment("Row 3 - 4 bricks offset back to the original condition")
+        putdown = [0, 0, brick.block_h]
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+        self.next_vertically_stacked_row(putdown, "-")
         i = 0
         while i < 4:
-            self.mover(pickup, putdown)
+            self.move_brick(pickup, putdown)
+            self.move_back_to_pickup()
             self.next_brick_in_x_row(putdown)
             i += 1
 
