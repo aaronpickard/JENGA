@@ -14,14 +14,16 @@ def in_to_mm(input):
     return output
 
 
-def get_x_val():
-    # used in functions that call for user input
-    pass
-
-
-def get_y_val():
-    pass
-
-
-def get_z_val():
-    pass
+def map_from_arduino(x, in_min, in_max, out_min, out_max):
+    """
+    Code ported from Arduino, at https://www.arduino.cc/reference/en/language/functions/math/map/
+    :param x:
+    :param in_min:
+    :param in_max:
+    :param out_min:
+    :param out_max:
+    :return:
+    """
+    temp = (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+    output = round(temp, 2)
+    return output
