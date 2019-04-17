@@ -18,6 +18,7 @@ class GCode(object):
         self.pickup_point = [1, 1, 1]
         self.placement_point = [1, 1, 1]
         self.goto_point = [0, 0, 0]
+        self.current_point = [0,0,0]
         self.ul_base = [-2000, 2000, 0]   # upper left base station coordinates - MOTOR X
         self.ur_base = [2000, 2000, 0]    # upper right base station coordinates - MOTOR Y
         self.ll_base = [-2000, -2000, 0]  # lower left base station coordinates - MOTOR Z
@@ -262,10 +263,10 @@ class GCode(object):
         while counter < num_steps:
         # while abs(start_z - stop_z) > self.step_size:
             # calculate new intermediate position
-            if start_z < stop_z:
+            if self.current_point[2] < stop_z:
                 intermediate[2] = intermediate[2] + self.step_size
             # convert to change in height & print instruction
-            elif start_z > stop_z:
+            elif self.current_point[2] > stop_z:
                 intermediate[2] = intermediate[2] - self.step_size
             temp = [start[0], start[1], intermediate[2]]
             self.print_command(temp)
@@ -346,7 +347,7 @@ class GCode(object):
         e value = sqrt((brick position)^2 + (brick position e offset)^2 - (e position)^2)
         last 2 variables are always the same, middle representing the end effector offset, and last representing the tether base position
         """
-
+        self.current_point = position_list
         x_pos = position_list[0]
         y_pos = position_list[1]
         z_pos = position_list[2]
@@ -469,11 +470,11 @@ class GCode(object):
           A map X range in XY plane to length range
           B map Y range in XY plane to length range
         """
-        self.move_vertical(start, self.separation_height)
-        start[2] = start[2] + self.separation_height
+        # self.move_vertical(start, self.separation_height)
+        # start[2] = start[2] + self.separation_height
         start = [start[0], start[1], start[2]]
         tmp_stop = stop
-        stop[2] = stop[2] + self.separation_height
+        # stop[2] = stop[2] + self.separation_height
         stop = [stop[0], stop[1], stop[2]]
         start_x = start[0]
         start_y = start[1]
@@ -519,7 +520,37 @@ class GCode(object):
             # print("TEST loop number: " + str(counter))
             # print("(" + str(x_pos[x]) +", " + str(z_pos[x]) + ")")
         #Move Down
-        print("tmp= " + str(tmp))
-        neg = -1 * abs(abs(tmp_stop[2] - tmp[2]) + self.separation_height)
-        print("neg= " + str(neg))
+        # print("tmp= " + str(tmp))
+        # neg = -1 * abs(abs(tmp_stop[2] - tmp[2]) + self.separation_height)
+        # print("neg= " + str(neg))
         # self.move_vertical(tmp, neg)
+
+    def move_down(self, start, h):
+        """
+        1 get current location (x,y,z)
+        2 get intermediate end effector positions (x,y,z,p) - p is boolean
+        3 iterate through each intermediate position and from that convert to tether length
+        """
+        height = h
+        num_steps = 0
+        temp = 0
+        start_x = start[0]
+        start_y = start[1]
+        start_z = start[2]
+        stop_z = start_z - height
+        print("start_z=" + str(start_z)+"   height="+str(height)+"   stop_z="+str(stop_z))
+        intermediate = [start_x, start_y, start_z]
+        temp = height / self.step_size
+        num_steps = math.ceil(temp)
+        counter = 0
+        while counter < num_steps:
+            # while abs(start_z - stop_z) > self.step_size:
+            # calculate new intermediate position
+            #if self.current_point[2] > stop_z:
+            tmp = intermediate[2] - self.step_size
+            temp = [start[0], start[1], tmp]
+            self.print_command(temp)
+            counter += 1
+        #fail safe
+        self.print_comment("IF THIS TRIGGERS, LOOP FAILED BUT COMMAND EXECUTED SUCCESFULLY")
+        self.print_command([start_x, start_y, stop_z])
