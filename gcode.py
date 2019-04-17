@@ -10,22 +10,7 @@ MEIE 4810 Introduction to Human Spaceflight at Columbia University.
 from __future__ import division
 import math
 import numpy as np
-
-
-"""
-TODO revise assumptions
-Assumptions: 
-1. The 4 wires in this system are all 2m (2000mm) long. Each wire length is represented by an axis.
-2. MOTOR NAMES
-3. All default positions until changed are (0,0,0).
-4. The pickup position and orientation is the same for every block.
-5. Functions that have gcode or mcode output are named with the prefix move_
-6. Functions that manipulate variables are named with the prefix set_
-7. There are 4 kinds of locations - neutral (resting place), pickup (where bricks are picked up), 
-   placement (where bricks are put down), and goto (where a location can be manually edited).
-8. Each function that gives output will convert to tether lengths
-"""
-
+import my_utils as m
 
 class GCode(object):
     def __init__(self):
@@ -46,13 +31,14 @@ class GCode(object):
         self.ll_dist = 0
         self.lr_dist = 0
         self.feed_rate = 20
-        self.step_size = 10
-        self.parabola_coefficient = 1.5
+        self.step_size = 3
         self.separation_height = 75  # 3x brick height, or brick + pyramid + 25mm height
         self.output_file = "output_instructions.txt"
         self.output_csv = "output_coordinates.csv"
         self.output_instruction_csv = "output_instructions.csv"
         self.output_test = "output_test.txt"  # TODO create test file
+        self.print_to_terminal = False
+        self.parabola_operand = 0
         if self.output_instruction_csv is not None:
             file = open(self.output_instruction_csv, "a")
             file.write("ul_output,ur_output,ll_output,lr_output\n")
@@ -155,9 +141,14 @@ class GCode(object):
         start[2] += self.separation_height
         start_z = start[2]
         stop_z += self.separation_height
+        # Multi step method
         self.move_parabola_xz([start_x, start_y, start_z], [stop_x, start_y, stop_z])
         self.move_parabola_yz([stop_x, start_y, stop_z], [stop_x, stop_y, stop_z])  # x & z coord.s set by last call
+
         self.move_vertical([stop_x, stop_y, stop_z], (-1*self.separation_height))
+
+        # Single step method
+        # self.move_orrian_algo()
         # Now put the brick down by calling putdown_brick(place)
         # Return to starting position by invoking this method but swapping the start and stop points
 
@@ -168,7 +159,7 @@ class GCode(object):
         stop_x = stop[0]
         stop_z = stop[2]
         midpoint_x = (start_x + stop_x) / 2
-        midpoint_z = self.parabola_coefficient * midpoint_x
+        midpoint_z = self.parabola_operand + midpoint_x
         self.make_parabola(start_x, start_z, stop_x, stop_z, midpoint_x, midpoint_z, "y", start[1])
         # TODO this is always called first - could it be more efficient to not necessarily go down on to the
         #  placement point since I'll only be on top of it in one direction?
@@ -183,7 +174,7 @@ class GCode(object):
         stop_y = stop[1]
         stop_z = stop[2]
         mid_point_y = (start_y + stop_y) / 2
-        midpoint_z = self.parabola_coefficient * mid_point_y
+        midpoint_z = self.parabola_operand + (start_z + stop_z) / 2
         self.make_parabola(start_y, stop_z, stop_y, stop_z, mid_point_y, midpoint_z, "x", start[0])
         # TODO this is always called second & has a clearance parameter to make sure it doesnt hit another brick
         #  so why shouldn't I do this step in the xy plane, without any of this parabola math?
@@ -202,9 +193,9 @@ class GCode(object):
         stop_z = stop[2]
         midpoint_x = (start_x + stop_x) / 2
         mid_point_y = (start_y + stop_y) / 2
-        midpoint_z = self.parabola_coefficient * midpoint_x
+        midpoint_z = self.parabola_operand + (start_z + stop_z) / 2
         self.make_parabola(start_x, start_z, stop_x, stop_z, midpoint_x, midpoint_z, "y", start[1])
-        midpoint_z = self.parabola_coefficient * mid_point_y
+        midpoint_z = self.parabola_operand + mid_point_y
         self.make_parabola(start_y, stop_z, stop_y, stop_z, mid_point_y, midpoint_z, "x", start[0])
 
     def make_parabola(self, x1, y1, x2, y2, x3, y3, static_var, static_val):
@@ -232,19 +223,12 @@ class GCode(object):
         b = (x3 * x3 * (y1 - y2) + x2 * x2 * (y3 - y1) + x1 * x1 * (y2 - y3)) / denom
         c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom
         x_pos = np.arange(x1, x2, self.step_size)  # x is the nonstatic var so this should be the range
-        """
-        DELETE THIS after verifying code works
-        if static_var == "x":  # creating a yz graph
-            # x_pos = np.arange(self.ll_base[0], self.lr_base[0], self.step_size)
-            # confusingly, x_pos refers to the y dimension in the line of code above
-        elif static_var == "y":  # creating an xz graph
-            x_pos = np.arange(self.ll_base[1], self.ul_base[1], self.step_size)
-        """
         z_pos = []  # stored so if we wanted to do something with the coordinate pairs we could
         # Calculate y values
         for x in range(len(x_pos)):
             x_val = x_pos[x]
-            z = (a * (x_val ** 2)) + (b * x_val) + c
+            z = +1 * (a * (x_val ** 2)) + (b * x_val) + c
+            z = abs(z)
             z_pos.append(z)
             if static_var == "x":
                 self.print_command([static_val, x_val, z])  # If x is static it never changes
@@ -274,18 +258,26 @@ class GCode(object):
         intermediate = [start_x, start_y, start_z]
         temp = height/self.step_size
         num_steps = math.ceil(temp)
-
-        while start_z < stop_z:
+        counter = 0
+        while counter < num_steps:
+        # while abs(start_z - stop_z) > self.step_size:
             # calculate new intermediate position
-            intermediate[2] = intermediate[2] + self.step_size
+            if start_z < stop_z:
+                intermediate[2] = intermediate[2] + self.step_size
             # convert to change in height & print instruction
-            self.print_command(intermediate)
+            elif start_z > stop_z:
+                intermediate[2] = intermediate[2] - self.step_size
+            temp = [start[0], start[1], intermediate[2]]
+            self.print_command(temp)
+            counter += 1
+            """
             if stop_z - intermediate[2] < self.step_size:
                 # calculate new intermediate position
                 intermediate[2] = intermediate[2] + (stop_z - intermediate[2])
                 # convert to change in height & print instruction
                 self.print_command(intermediate)
                 break
+            """
 
     def move_horizontal(self, start, stop):
         # This method works by stepping between coplanar start and stop points linearly.
@@ -335,7 +327,8 @@ class GCode(object):
             # TODO how do I keep this function from running away in an infinite loop?
 
     def print_comment(self, text):
-        print("; "+str(text))
+        if self.print_to_terminal is True:
+            print("; "+str(text))
         if self.output_file is not None:
             file = open(self.output_file, "a")
             file.write("; "+str(text) +"\n")
@@ -360,7 +353,8 @@ class GCode(object):
 
         if x_pos == 999:
             # Pickup
-            print("M8 ; ")
+            if self.print_to_terminal is True:
+                print("M8 ; ")
             if self.output_file is not None:
                 file = open(self.output_file, "a")
                 file.write("M8 ; pickup \n")
@@ -368,19 +362,14 @@ class GCode(object):
 
         elif x_pos == -999:
             # Putdown
-            print("M9 ; ")
+            if self.print_to_terminal is True:
+                print("M9 ; ")
             if self.output_file is not None:
                 file = open(self.output_file, "a")
                 file.write("M9 ; putdown \n")
                 file.close()
 
         else:
-            # plot points in csv file
-            if self.output_csv is not None:
-                file = open(self.output_csv, "a")
-                file.write(str(x_pos)+","+str(y_pos)+","+str(z_pos)+"\n")
-                file.close()
-
             # Motion calculations
             # Upper left base
             x_end_offset = self.ul_base_offset[0]
@@ -444,7 +433,8 @@ class GCode(object):
             lr_output = round(lr_output, 2)
 
             # Print this statement
-            print("G1 X"+str(ul_output)+" Y"+str(ur_output)+" Z"+str(ll_output)+" E"+str(lr_output)+" ;")
+            if self.print_to_terminal is True:
+                print("G1 X"+str(ul_output)+" Y"+str(ur_output)+" Z"+str(ll_output)+" E"+str(lr_output)+" ;")
             if self.output_file is not None:
                 file = open(self.output_file, "a")
                 file.write("G1 X"+str(ul_output)+" Y"+str(ur_output)+" Z"+str(ll_output)+" E"+str(lr_output)+" ; \n")
@@ -453,9 +443,83 @@ class GCode(object):
                 file = open(self.output_instruction_csv, "a")
                 file.write(str(ul_output)+","+str(ur_output)+","+str(ll_output)+","+str(lr_output)+"\n")
                 file.close()
+            if self.output_csv is not None:
+                x_pos = round(x_pos, 2)
+                y_pos = round(y_pos, 2)
+                z_pos = round(z_pos, 2)
+                file = open(self.output_csv, "a")
+                file.write(str(x_pos) + "," + str(y_pos) + "," + str(z_pos) + "\n")
+                file.close()
 
     def set_tether_length(self):
         self.ul_dist = math.sqrt((self.ul_base[0])**2+(self.ul_base[1])**2)
         self.ur_dist = math.sqrt((self.ur_base[0]) ** 2 + (self.ur_base[1]) ** 2)
         self.ll_dist = math.sqrt((self.ll_base[0]) ** 2 + (self.ll_base[1]) ** 2)
         self.lr_dist = math.sqrt((self.lr_base[0]) ** 2 + (self.lr_base[1]) ** 2)
+
+    def move_orrian_algo(self, start, stop):
+        """
+        :param start: [x,y,z] start position
+        :param stop: [x,y,z] stop position
+        :return: nothing
+        1 find length in XY plane between points
+        2 create 2D map with start at (0,z) and second point at (length,Z)
+        3 calculate discretized parabola for 2D map case
+        4 convert discretized parabola back to 3D
+          A map X range in XY plane to length range
+          B map Y range in XY plane to length range
+        """
+        self.move_vertical(start, self.separation_height)
+        start[2] = start[2] + self.separation_height
+        start = [start[0], start[1], start[2]]
+        tmp_stop = stop
+        stop[2] = stop[2] + self.separation_height
+        stop = [stop[0], stop[1], stop[2]]
+        start_x = start[0]
+        start_y = start[1]
+        start_z = start[2]
+        stop_x = stop[0]
+        stop_y = stop[1]
+        stop_z = stop[2]
+        length = math.sqrt((stop_y-start_y)**2+(stop_x-start_x)**2)
+        two_t = [0, 0, start_z]  # start position
+        two_p = [length, 0, stop_z]  # stop position
+        midpoint_x = (two_t[0] + two_p[0]) / 2
+        midpoint_y = (two_t[1] + two_p[1]) / 2
+        midpoint_z = 100 + (two_t[2]+two_p[2])/2
+        midpoint = [midpoint_x, midpoint_y, midpoint_z]
+        x1 = start_x
+        y1 = start_z
+        x2 = length
+        y2 = stop_z
+        x3 = length/2
+        y3 = midpoint_z
+        print("(x1, y1)= ("+str(x1) + ", " + str(y1) + ")")
+        denom = 1.0 * (x1 - x2) * (x1 - x3) * (x2 - x3)
+        if denom == 0:
+            denom = 0.000000000000001
+        a = (x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2)) / denom * -1
+        b = (x3 * x3 * (y1 - y2) + x2 * x2 * (y3 - y1) + x1 * x1 * (y2 - y3)) / denom
+        c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom
+        x_pos = np.arange(x1, x2, self.step_size)  # x is the nonstatic var so this should be the range
+        z_pos = []  # stored so if we wanted to do something with the coordinate pairs we could
+        print(str(a)+"x^2 + "+str(b)+"x + "+str(c))
+        # Calculate y values
+        for x in range(len(x_pos)):
+            x_val = x_pos[x]
+            z = -1 * (a * (x_val ** 2)) + (b * x_val) + c
+            z = abs(z)
+            z_pos.append(z)
+            # Map back to 3D
+            out_x = m.map_from_arduino(x, 0, length, start_x, stop_x)
+            out_y = m.map_from_arduino(x, 0, length, start_y, stop_y)
+            # Print
+            tmp = [out_x, out_y, z]
+            self.print_command(tmp)
+            # print("TEST loop number: " + str(counter))
+            # print("(" + str(x_pos[x]) +", " + str(z_pos[x]) + ")")
+        #Move Down
+        print("tmp= " + str(tmp))
+        neg = -1 * abs(abs(tmp_stop[2] - tmp[2]) + self.separation_height)
+        print("neg= " + str(neg))
+        # self.move_vertical(tmp, neg)
