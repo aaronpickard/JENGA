@@ -66,14 +66,16 @@ class GCode(object):
 
     def set_feed_rate(self, f):   # feed rate in mm/m
         self.feed_rate = f
-        print("G1 F" + str(self.feed_rate) + ";")
+        if self.print_to_terminal == True:
+            print("G1 F" + str(self.feed_rate) + ";")
         if self.output_file is not None:
             file = open(self.output_file, "a")
             file.write("G1 F" + str(self.feed_rate) + " ; \n")
             file.close()
 
     def set_units(self):
-        print("G21 ; This program requires operations with the gcode millemeter setting")
+        if self.print_to_terminal == True:
+            print("G21 ; This program requires operations with the gcode millemeter setting")
         if self.output_file is not None:
             file = open(self.output_file, "a")
             file.write("G21 ; This program requires operations with the gcode millemeter setting \n")
@@ -236,7 +238,8 @@ class GCode(object):
             elif static_var == "y":
                 self.print_command([x_val, static_val, z])  # If y is static it never changes
             else:
-                print("; make_parabola() can only create parabolas in the xz and yz planes. \n")
+                if self.print_to_terminal == True:
+                    print("; make_parabola() can only create parabolas in the xz and yz planes. \n")
                 if self.output_file is not None:
                     file = open(self.output_file, "a")
                     file.write("; make_parabola() can only create parabolas in the xz and yz planes. \n")
@@ -305,7 +308,8 @@ class GCode(object):
         unit_z = vector_z/vector_mag*self.step_size
         unit = [unit_x, unit_y, unit_z]  # now I have a unit vector w/ length step_size
 
-        self.print_comment("TEST move_horizontal")
+        if self.print_to_terminal == True:
+            self.print_comment("TEST move_horizontal")
         while (abs(start_x - stop_x) > 0.001) or (abs(start_y - stop_y) > 0.001) or (abs(start_z - stop_z) > 0.001):
             # calculate new intermediate position
             if intermediate[0] != stop_x:
@@ -495,7 +499,8 @@ class GCode(object):
         y2 = stop_z
         x3 = length/2
         y3 = midpoint_z
-        print("(x1, y1)= ("+str(x1) + ", " + str(y1) + ")")
+        if self.print_to_terminal == True:
+            print("(x1, y1)= ("+str(x1) + ", " + str(y1) + ")")
         denom = 1.0 * (x1 - x2) * (x1 - x3) * (x2 - x3)
         if denom == 0:
             denom = 0.000000000000001
@@ -504,7 +509,8 @@ class GCode(object):
         c = (x2 * x3 * (x2 - x3) * y1 + x3 * x1 * (x3 - x1) * y2 + x1 * x2 * (x1 - x2) * y3) / denom
         x_pos = np.arange(x1, x2, self.step_size)  # x is the nonstatic var so this should be the range
         z_pos = []  # stored so if we wanted to do something with the coordinate pairs we could
-        print(str(a)+"x^2 + "+str(b)+"x + "+str(c))
+        if self.print_to_terminal == True:
+            print(str(a)+"x^2 + "+str(b)+"x + "+str(c))
         # Calculate y values
         for x in range(len(x_pos)):
             x_val = x_pos[x]
@@ -538,7 +544,8 @@ class GCode(object):
         start_y = start[1]
         start_z = start[2]
         stop_z = start_z - height
-        print("start_z=" + str(start_z)+"   height="+str(height)+"   stop_z="+str(stop_z))
+        if self.print_to_terminal == True:
+            print("start_z=" + str(start_z)+"   height="+str(height)+"   stop_z="+str(stop_z))
         intermediate = [start_x, start_y, start_z]
         temp = height / self.step_size
         num_steps = math.ceil(temp)
@@ -552,5 +559,6 @@ class GCode(object):
             self.print_command(temp)
             counter += 1
         #fail safe
-        self.print_comment("IF THIS TRIGGERS, LOOP FAILED BUT COMMAND EXECUTED SUCCESFULLY")
+        if self.print_to_terminal == True:
+            self.print_comment("IF THIS TRIGGERS, LOOP FAILED BUT COMMAND EXECUTED SUCCESFULLY")
         self.print_command([start_x, start_y, stop_z])
