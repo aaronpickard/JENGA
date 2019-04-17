@@ -4,27 +4,21 @@ ajp2235
 Spring 2019
 path_to_wall.py
 This file details a basic path planning algorithm for the construction of a wall.
-A basic wall is the proof of concept for Milestone 3 of Project JENGA.
-The first objective here, which I am trying to accomplish for Milestone 3,
-is to produce an algorithm that will output the right code for a wall given hard coded inputs.
-Then, time permitting, I will work on implementing both a better path planning algorithm, and the ability
-to take in structures of bricks as a file. If these objectives are not accomplished for Milestone 3,
-they will be rolled over into Milestone 4.
 This file supports Project JENGA, a final project in the Spring 2019 semester of
 MEIE 4810 Introduction to Human Spaceflight at Columbia University.
 """
 
 import gcode
 import block
+import os
 
 g = gcode.GCode()
 brick = block.Block()
 
 class Basic(object):
     """
-    Workspace of 2-4m on each side
+    Workspace of 2m on each side
     We'll use an origin point in the center (gcode will play nice with negative coordinates)
-
     """
     def __init__(self):
         self.x = 0  # enables user to "manually" direct motion of the assembly
@@ -43,7 +37,43 @@ class Basic(object):
         g.set_goto_point(x, y, z)
         g.set_neutral()
 
+    def mover(self, pickup, putdown):
+        g.pickup_brick(pickup)
+        g.move_orrian_algo(pickup, putdown)
+        g.putdown_brick(putdown)
+        # g.move_orrian_algo(putdown, pickup) TODO DELETE COMMENT
+
+    def next_brick_in_x_row(self, putdown):
+        putdown[0] += brick.block_l
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+    
+    def next_brick_in_y_row(self, putdown):
+        putdown[1] += brick.block_w
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+
+    def next_horizontal_x_row(self, putdown):
+        pass
+    
+    def next_horizontal_y_row(self, putdown):
+        pass
+        
+    def next_vertically_stacked_row(self, putdown, offset_sign):
+        if offset_sign == "+":
+            putdown[0] = putdown[0] + (brick.block_l/2)
+        elif offset_sign == "-":
+            putdown[0] = putdown[0] - (brick.block_l / 2)
+        elif offset_sign == "0":
+            putdown[0] = putdown[0] + 0
+        else:
+            print("ERROR in next_vertically_stacked_offset_row()")
+            g.print_comment("ERROR in next_vertically_stacked_offset_row()")
+        putdown[2] += brick.block_h
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+
     def algo(self):
+        os.remove("output_coordinates.csv")
+        os.remove("output_instructions.csv")
+        os.remove("output_instructions.txt")
         g.print_comment("INSTRUCTION SET BEGINS")
         g.print_comment("Instruction set initialization")
         g.set_units()
@@ -53,94 +83,48 @@ class Basic(object):
         self.load_pickup(pickup[0], pickup[1], pickup[2])
         g.set_feed_rate(20)
         g.set_tether_length()
-
-        g.print_comment("Row 1 - 4 bricks")
-        putdown = [0,0,0]
+        putdown = [0, 0, 0]
         self.load_putdown(putdown[0], putdown[1], putdown[2])
         g.move_parabola_xyz(neutral, pickup)
-        g.pickup_brick(pickup)
-        g.move_brick_to_placement(pickup, putdown)  # brick 1
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        putdown[0] += brick.block_l
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.move_brick_to_placement(pickup, putdown)  # brick 2
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        putdown[0] += brick.block_l
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.move_brick_to_placement(pickup, putdown)  # brick 3
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        putdown[0] += brick.block_l
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.move_brick_to_placement(pickup, putdown)  # brick 4
 
+        g.print_comment("Row 1 - 4 bricks")
+        i = 0
+        while i < 4:
+            self.mover(pickup, putdown)
+            self.next_brick_in_x_row(putdown)
+            i += 1
+
+        # Adjusts putdown point back to original position
+        putdown = [0, 0, 0]
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+        self.next_vertically_stacked_offset_row(putdown, "+")
 
         g.print_comment("Row 2 - 4 bricks offset")
-        putdown[2] += brick.block_h
-        putdown[0] = 0 + (brick.block_l/2)
+        i = 0
+        while i < 4:
+            self.mover(pickup, putdown)
+            self.next_brick_in_x_row(putdown)
+            i += 1
+
+        # Undoes offset
+        putdown = [0, 0, 0]
         self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        g.move_brick_to_placement(pickup, putdown)
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.move_brick_to_placement(pickup, putdown)
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.move_brick_to_placement(pickup, putdown)
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.move_brick_to_placement(pickup, putdown)
 
         g.print_comment("Row 3 - 4 bricks offset back to the original condition")
-        putdown[2] += brick.block_h
-        putdown[0] = 0 - (brick.block_l/2)
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        g.move_brick_to_placement(pickup, putdown)
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.move_brick_to_placement(pickup, putdown)
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.move_brick_to_placement(pickup, putdown)
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
-        putdown[0] = 0 + brick.block_l
-        self.load_putdown(putdown[0], putdown[1], putdown[2])
-        g.move_brick_to_placement(pickup, putdown)
-        g.putdown_brick(putdown)
-        g.move_brick_to_placement(putdown, pickup)
-        g.pickup_brick(pickup)
+        i = 0
+        while i < 4:
+            self.mover(pickup, putdown)
+            self.next_brick_in_x_row(putdown)
+            i += 1
 
+        i = 0
+        while i < 4:
+            i += 1
+            g.move_vertical(putdown, g.separation_height)
         # g.print_comment("move back to neutral")
         # g.move_vertical(pickup, 300)
-        self.load_pickup(pickup[0], pickup[1], (pickup[2]+300))
-        g.move_parabola_xyz(pickup, neutral)
+        # self.load_pickup(pickup[0], pickup[1], (pickup[2]+300))
+        # g.move_parabola_xyz(pickup, neutral)
         # print("; INSTRUCTION SET ENDS")
         # print("BEGIN move_horizontal(pickup, neutral)")
         # g.move_horizontal(pickup, neutral)
