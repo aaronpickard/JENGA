@@ -11,6 +11,7 @@ MEIE 4810 Introduction to Human Spaceflight at Columbia University.
 import gcode
 import block
 import os
+import my_utils as util
 
 g = gcode.GCode()
 brick = block.Block()
@@ -42,7 +43,7 @@ class Basic(object):
         g.move_vertical(pickup, g.separation_height)
         pickup = [pickup[0], pickup[1], (pickup[2] + g.separation_height)]
         putdown_alias = [putdown[0], putdown[1], (putdown[2] + g.separation_height)]
-        self.move_lateral(pickup, putdown_alias)
+        g.move_orrian_algo(pickup, putdown_alias)
         g.move_down(putdown_alias, g.separation_height)
         g.putdown_brick(g.current_point)
 
@@ -50,13 +51,12 @@ class Basic(object):
         pickup = g.pickup_point
         g.move_vertical(g.current_point, g.separation_height)
         pickup = [pickup[0], pickup[1], (pickup[2] + g.separation_height)]
-        self.move_lateral(g.current_point, pickup)
+        # self.move_lateral(g.current_point, pickup)
+        g.move_orrian_algo(g.current_point, pickup)
         g.move_down(pickup, g.separation_height)
 
     def move_lateral(self, pickup, putdown):
         g.move_orrian_algo(pickup, putdown)
-
-        # g.move_orrian_algo(putdown, pickup) TODO DELETE COMMENT
 
     def next_brick_in_x_row(self, putdown):
         putdown[0] += brick.block_l
@@ -88,7 +88,9 @@ class Basic(object):
     def algo(self):
         os.remove("output_coordinates.csv")
         os.remove("output_instructions.csv")
+        os.remove("output_points.csv")
         os.remove("output_instructions.txt")
+
         g.print_comment("INSTRUCTION SET BEGINS")
         g.print_comment("Instruction set initialization")
         g.set_units()
@@ -124,6 +126,7 @@ class Basic(object):
             i += 1
 
 
+        """
         g.print_comment("Row 3 - 4 bricks offset back to the original condition")
         putdown = [0, 0, brick.block_h]
         self.load_putdown(putdown[0], putdown[1], putdown[2])
@@ -134,6 +137,7 @@ class Basic(object):
             self.move_back_to_pickup()
             self.next_brick_in_x_row(putdown)
             i += 1
+        """
 
         i = 0
         while i < 4:
@@ -148,6 +152,10 @@ class Basic(object):
         # g.move_horizontal(pickup, neutral)
         # print("END move_horizontal(pickup, neutral)")
         g.print_comment("INSTRUCTION SET ENDS")
+
+        #Verification
+        util.find_max_z_value('output_coordinates.csv')
+        util.find_illegal_tether_length('output_instructions.csv', 2250)
 
 class Fancy(object):
 
