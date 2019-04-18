@@ -11,6 +11,7 @@ from __future__ import division
 import math
 import numpy as np
 import my_utils as m
+import os
 
 class GCode(object):
     def __init__(self):
@@ -18,15 +19,15 @@ class GCode(object):
         self.pickup_point = [1, 1, 1]
         self.placement_point = [1, 1, 1]
         self.goto_point = [0, 0, 0]
-        self.current_point = [0,0,0]
-        self.ul_base = [-2000, 2000, 0]   # upper left base station coordinates - MOTOR X
-        self.ur_base = [2000, 2000, 0]    # upper right base station coordinates - MOTOR Y
-        self.ll_base = [-2000, -2000, 0]  # lower left base station coordinates - MOTOR Z
-        self.lr_base = [2000, -2000, 0]   # lower right base station coordinates - MOTOR E
-        self.ul_base_offset = [0, 0, 0]
-        self.ur_base_offset = [0, 0, 0]
-        self.ll_base_offset = [0, 0, 0]
-        self.lr_base_offset = [0, 0, 0]
+        self.current_point = [0, 0, 0]
+        self.ul_base = [-1000, 1000, 0]   # upper left base station coordinates - MOTOR X
+        self.ur_base = [1000, 1000, 0]    # upper right base station coordinates - MOTOR Y
+        self.ll_base = [-1000, -1000, 0]  # lower left base station coordinates - MOTOR Z
+        self.lr_base = [1000, -1000, 0]   # lower right base station coordinates - MOTOR E
+        self.ul_base_offset = [-12.5, 12.5, 0]
+        self.ur_base_offset = [12.5, 12.5, 0]
+        self.ll_base_offset = [-12.5, -12.5, 0]
+        self.lr_base_offset = [12.5, -12.5, 0]
         self.ul_dist = 0
         self.ur_dist = 0
         self.ll_dist = 0
@@ -38,17 +39,23 @@ class GCode(object):
         self.output_csv = "output_coordinates.csv"
         self.output_instruction_csv = "output_instructions.csv"
         self.output_test = "output_test.txt"  # TODO create test file
+        self.output_points = "output_points.csv"
         self.print_to_terminal = False
         self.parabola_operand = 0
         if self.output_instruction_csv is not None:
+            # os.remove(self.output_instruction_csv)
             file = open(self.output_instruction_csv, "a")
             file.write("ul_output,ur_output,ll_output,lr_output\n")
             file.close()
         if self.output_csv is not None:
+            # os.remove(self.output_csv)
             file = open(self.output_csv, "a")
             file.write("x,y,z\n")
             file.close()
-
+        if self.output_file is not None:
+            pass
+        if self.output_points is not None:
+            pass
     # def set_output_file(self, f):
         # self.output_file = f
 
@@ -97,7 +104,8 @@ class GCode(object):
         place_y = place[1]
         place_z = place[2]
         pickup = 999
-        self.print_command([pickup, place_y, place_z])
+        ret_val = [pickup, place_y, place_z]
+        self.print_command(ret_val)
 
     def putdown_brick(self, place):
         """
@@ -109,7 +117,8 @@ class GCode(object):
         place_y = place[1]
         place_z = place[2]
         putdown = -999
-        self.print_command([putdown, place_y, place_z])
+        ret_val = [putdown, place_y, place_z]
+        self.print_command(ret_val)
 
     def move_brick_to_placement(self, start, stop):
         # This function picks up a brick at the start point, moves it to the stop point, puts it down, and returns to
@@ -351,7 +360,6 @@ class GCode(object):
         e value = sqrt((brick position)^2 + (brick position e offset)^2 - (e position)^2)
         last 2 variables are always the same, middle representing the end effector offset, and last representing the tether base position
         """
-        self.current_point = position_list
         x_pos = position_list[0]
         y_pos = position_list[1]
         z_pos = position_list[2]
@@ -364,6 +372,7 @@ class GCode(object):
                 file = open(self.output_file, "a")
                 file.write("M8 ; pickup \n")
                 file.close()
+            return
 
         elif x_pos == -999:
             # Putdown
@@ -373,8 +382,21 @@ class GCode(object):
                 file = open(self.output_file, "a")
                 file.write("M9 ; putdown \n")
                 file.close()
+            if self.output_points is not None:
+                file = open(self.output_points, "a")
+                file.write(str(self.current_point[0]) + ","+ str(self.current_point[1])+","+str(self.current_point[2])+"\n")
+                file.close()
+            return
 
         else:
+            if 0 >= z_pos:
+                # Illegal z position
+                if self.print_to_terminal is True:
+                    print("ILLEGAL Z Position = " + str(z_pos) + " HAS BEEN MODIFIED TO 10mm")
+                if self.output_file is not None:
+                    self.print_comment("ILLEGAL Z Position = " + str(z_pos) + " HAS BEEN MODIFIED TO 10mm")
+                z_pos = 10
+            self.current_point = position_list
             # Motion calculations
             # Upper left base
             x_end_offset = self.ul_base_offset[0]
@@ -549,6 +571,7 @@ class GCode(object):
         intermediate = [start_x, start_y, start_z]
         temp = height / self.step_size
         num_steps = math.ceil(temp)
+        """
         counter = 0
         while counter < num_steps:
             # while abs(start_z - stop_z) > self.step_size:
@@ -558,7 +581,8 @@ class GCode(object):
             temp = [start[0], start[1], tmp]
             self.print_command(temp)
             counter += 1
+        """
         #fail safe
         if self.print_to_terminal == True:
-            self.print_comment("IF THIS TRIGGERS, LOOP FAILED BUT COMMAND EXECUTED SUCCESFULLY")
+            self.print_comment("IF THIS TRIGGERS, LOOP FAILED BUT COMMAND EXECUTED SUCCESSFULLY")
         self.print_command([start_x, start_y, stop_z])
