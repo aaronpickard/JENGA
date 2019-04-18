@@ -1,17 +1,19 @@
-import block
+import block as brick
 import path_to_wall
 import gcode
 import os
 import my_utils
 
-os.remove("output_coordinates.csv")
-os.remove("output_instructions.csv")
-os.remove("output_instructions.txt")
-my_block = block.Block()
+
+
+
+my_block = brick.Block()
 my_path = path_to_wall.Basic()
 my_code = gcode.GCode()
 
+
 def test1():
+    print("Test 1")
     my_code.print_comment("INSTRUCTION SET BEGINS")
     my_code.print_comment("Instruction set initialization")
     my_code.set_units()
@@ -62,6 +64,7 @@ def test2():
     Tests move_vertical (up) and move_down (down) functions
     :return:
     """
+    print("Test 2")
     my_code.print_comment("INSTRUCTION SET BEGINS")
     my_code.print_comment("Instruction set initialization")
     my_code.set_units()
@@ -73,4 +76,46 @@ def test2():
     my_code.move_down(my_code.current_point, my_code.separation_height)
 
 
-test1()
+def test3():
+    def move_brick(pickup, putdown):
+        my_code.pickup_brick(pickup)
+        my_code.move_vertical(pickup, my_code.separation_height)
+        pickup = [pickup[0], pickup[1], (pickup[2] + my_code.separation_height)]
+        putdown_alias = [putdown[0], putdown[1], (putdown[2] + my_code.separation_height)]
+        my_code.move_orrian_algo(pickup, putdown_alias)
+        my_code.move_down(putdown_alias, my_code.separation_height)
+        my_code.putdown_brick(my_code.current_point)
+
+    def move_back_to_pickup():
+        pickup = my_code.pickup_point
+        my_code.move_vertical(my_code.current_point, my_code.separation_height)
+        # pickup = [pickup[0], pickup[1], (pickup[2] + my_code.separation_height)]
+        # move_lateral(my_code.current_point, pickup)
+        my_code.move_orrian_algo(my_code.current_point, pickup)
+        # my_code.move_down(pickup, my_code.separation_height)
+
+    def move_lateral(pickup, putdown):
+        my_code.move_orrian_algo(pickup, putdown)
+
+    def next_brick_in_x_row(putdown):
+        putdown[0] += my_block.block_l
+        my_code.set_goto_point(putdown[0], putdown[1], putdown[2])
+        my_code.set_placement_point()
+
+
+    putdown = [0, 0, 0]
+    my_code.placement_point = putdown
+    # my_code.set_output_file(output_file)
+    # neutral = my_code.neutral_point
+    pickup = [-80, 0, 0]
+    my_code.pickup_point = pickup
+    my_code.print_comment("Row 1 - 4 bricks")
+    i = 0
+    while i < 4:
+        move_brick(pickup, putdown)
+        move_back_to_pickup()
+        next_brick_in_x_row(putdown)
+        i += 1
+
+
+test3()
