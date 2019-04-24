@@ -12,6 +12,10 @@ import math
 import numpy as np
 import my_utils as m
 import os
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from numpy import linspace
+
 
 class GCode(object):
     def __init__(self):
@@ -56,6 +60,13 @@ class GCode(object):
             pass
         if self.output_points is not None:
             pass
+        # COLOR SECTION
+        start = 0.0
+        stop = 1.0
+        number_of_lines = 1000
+        cm_subsection = linspace(start, stop, number_of_lines)
+
+        colors = [cm.jet(x) for x in cm_subsection]
     # def set_output_file(self, f):
         # self.output_file = f
 
@@ -461,10 +472,10 @@ class GCode(object):
 
             # Print this statement
             if self.print_to_terminal is True:
-                print("G1 X"+str(ul_output)+" Y"+str(ur_output)+" Z"+str(ll_output)+" E"+str(lr_output)+" ;")
+                print("G1 X"+str(ul_output)+" Y"+str(ur_output)+" Z"+str(ll_output)+" A"+str(lr_output)+" ;")
             if self.output_file is not None:
                 file = open(self.output_file, "a")
-                file.write("G1 X"+str(ul_output)+" Y"+str(ur_output)+" Z"+str(ll_output)+" E"+str(lr_output)+" ; \n")
+                file.write("G1 X"+str(ul_output)+" Y"+str(ur_output)+" Z"+str(ll_output)+" A"+str(lr_output)+" ; \n")
                 file.close()
             if self.output_instruction_csv is not None:
                 file = open(self.output_instruction_csv, "a")
@@ -513,7 +524,7 @@ class GCode(object):
         two_p = [length, 0, stop_z]  # stop position
         midpoint_x = (two_t[0] + two_p[0]) / 2
         midpoint_y = (two_t[1] + two_p[1]) / 2
-        midpoint_z = 100 + (two_t[2]+two_p[2])/2
+        midpoint_z = self.parabola_operand + (two_t[2]+two_p[2])/2
         midpoint = [midpoint_x, midpoint_y, midpoint_z]
         x1 = start_x
         y1 = start_z
@@ -545,13 +556,15 @@ class GCode(object):
             # Print
             tmp = [out_x, out_y, z]
             self.print_command(tmp)
-            # print("TEST loop number: " + str(counter))
-            # print("(" + str(x_pos[x]) +", " + str(z_pos[x]) + ")")
-        #Move Down
-        # print("tmp= " + str(tmp))
-        # neg = -1 * abs(abs(tmp_stop[2] - tmp[2]) + self.separation_height)
-        # print("neg= " + str(neg))
-        # self.move_vertical(tmp, neg)
+            # Color
+
+        # Failsafe move to putdown + height
+        if abs(out_x - stop[0]) + abs(out_y - stop[1]) > 25:
+            self.print_command(stop)
+        """
+        for i, color in enumerate(colors):
+            plt.axhline(i, color=color)
+        """
 
     def move_down(self, start, h):
         """
