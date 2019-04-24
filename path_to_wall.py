@@ -82,8 +82,66 @@ class Basic(object):
         else:
             print("ERROR in next_vertically_stacked_offset_row()")
             g.print_comment("ERROR in next_vertically_stacked_offset_row()")
-        putdown[2] += brick.block_h
+        putdown[2] += 50
         self.load_putdown(putdown[0], putdown[1], putdown[2])
+
+
+    def initialize(self):
+        os.remove("output_coordinates.csv")
+        os.remove("output_instructions.csv")
+        os.remove("output_points.csv")
+        os.remove("output_instructions.txt")
+        g.separation_height = 100
+        g.print_comment("INSTRUCTION SET BEGINS")
+        g.print_comment("Instruction set initialization")
+        g.set_units()
+        g.current_point = [-500, 0, 25]
+
+
+    def algo2(self):
+        self.initialize()
+        pickup = [-500, 0, 25]
+        self.load_pickup(pickup[0], pickup[1], pickup[2])
+        g.set_feed_rate(20)
+        g.set_tether_length()
+        putdown = [20, 20, 25]
+        original_putdown = [20, 20, 25]
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+        g.parabola_operand = 0
+        # g.move_orrian_algo(g.neutral_point, pickup)
+        # Row 2
+        counter = 0
+        while counter < 4:
+            self.move_brick(pickup, putdown)
+            self.move_back_to_pickup()
+            self.next_brick_in_x_row(putdown)
+            counter += 1
+        putdown = [(20+brick.block_l/2), 20, 50]
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+        # Row 3
+        counter = 0
+        while counter < 4:
+            self.move_brick(pickup, putdown)
+            self.move_back_to_pickup()
+            self.next_brick_in_x_row(putdown)
+            counter += 1
+        """
+        temp[2] += brick.block_h
+        self.next_vertically_stacked_row(temp, "-")
+        """
+        putdown = [20, 20, 75]
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
+        # Row 3
+        counter = 0
+        while counter < 4:
+            self.move_brick(pickup, putdown)
+            self.move_back_to_pickup()
+            self.next_brick_in_x_row(putdown)
+            counter += 1
+
+
+
+
 
     def algo(self):
         os.remove("output_coordinates.csv")
@@ -91,9 +149,7 @@ class Basic(object):
         os.remove("output_points.csv")
         os.remove("output_instructions.txt")
 
-        g.print_comment("INSTRUCTION SET BEGINS")
-        g.print_comment("Instruction set initialization")
-        g.set_units()
+
         # g.set_output_file(output_file)
         neutral = g.neutral_point
         pickup = [-800, 0, 0]
@@ -156,6 +212,7 @@ class Basic(object):
         #Verification
         util.find_max_z_value('output_coordinates.csv')
         util.find_illegal_tether_length('output_instructions.csv', 2250)
+
 
 class Fancy(object):
 
