@@ -101,11 +101,9 @@ move_orrian_algo(self, start, stop): algorithm developed by Thomas Orr to move a
 4. Convert the discretized parabola (line) back to 3D, by mapping x range in xy plane to the length range, and the y range in the xy plane to the length range (this part may not be implemented optimally, but it works well enough for the code to integrate with the hardware and produce the desired results because there's a failsafe G1 command to get to the stop point)
 
 move_down(self, start, h): vertically moves a brick down a defined distance
-
-    STOPPED EDITING README.MD FILE HERE
     
 ## main.py
-This is the file that one day soon will bring all of these other files together and produce a meaningful G-Code instruction set for the balloon assembly to execute.
+This is the file that brings all of these other files together and produces a meaningful G-Code instruction set for the balloon assembly to execute.
 
 ### Functions in main.py
 
@@ -133,7 +131,7 @@ show_putdown_points(): constructs matplotlib scatter plot of a hardcoded .csv fi
 ## path_to_wall.py
 In this file, is a plan for a path to construct a structure (at this point the structure is a simple wall). 
 
-I was able to implement a path plan that was reasonably efficient, but for reasons of compatibility with the hardware, not nearly as efficient as anything along the lines of what Correll, et al. suggest in their 2013 paper "Assembly Path Planning for Stable Robotic Construction" (http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.1013.2520&rep=rep1&type=pdf). This is a key place where the architecture could be improved upon. The inputs for the code and the helper function are implemented in the Fancy(object) class.
+Project JENGA implements a path plan that works and may be reasonably efficient, but for reasons of compatibility with the hardware, not nearly as efficient as anything along the lines of what Correll, et al. suggest in their 2013 paper "Assembly Path Planning for Stable Robotic Construction" (http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.1013.2520&rep=rep1&type=pdf). This is a key place where the architecture could be improved upon. The inputs for the code and the helper function are implemented in the Fancy(object) class.
 
 Efficiency is considered here to be measured in the number of lines of instructions of G-Code given to the base station controllers. It is measured in this way with the goal of minimizing system power requirements. It competes against the desire to have small motor step sizes, due to the desire to not stress the hardware, and the need to have precision in placement location.
 
