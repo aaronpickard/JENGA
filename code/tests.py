@@ -13,6 +13,9 @@ my_code = gcode.GCode()
 
 
 def test1():
+    """
+    :return: none; produces output to show motion of end effector from neutral to pickup to putdown points
+    """
     print("Test 1")
     my_code.print_comment("INSTRUCTION SET BEGINS")
     my_code.print_comment("Instruction set initialization")
@@ -61,6 +64,9 @@ def test1():
 
 def test2():
     """
+    :return: none
+    """
+    """
     Tests move_vertical (up) and move_down (down) functions
     :return:
     """
@@ -77,7 +83,15 @@ def test2():
 
 
 def test3():
+    """
+    :return: none; tests ability to assemble a row of bricks
+    """
     def move_brick(pickup, putdown):
+        """
+        :param pickup: pickup point
+        :param putdown: putdown point
+        :return: none
+        """
         my_code.pickup_brick(pickup)
         my_code.move_vertical(pickup, my_code.separation_height)
         pickup = [pickup[0], pickup[1], (pickup[2] + my_code.separation_height)]
@@ -87,6 +101,9 @@ def test3():
         my_code.putdown_brick(my_code.current_point)
 
     def move_back_to_pickup():
+        """
+        :return: none
+        """
         pickup = my_code.pickup_point
         my_code.move_vertical(my_code.current_point, my_code.separation_height)
         # pickup = [pickup[0], pickup[1], (pickup[2] + my_code.separation_height)]
@@ -95,9 +112,18 @@ def test3():
         # my_code.move_down(pickup, my_code.separation_height)
 
     def move_lateral(pickup, putdown):
+        """
+        :param pickup: pickup point
+        :param putdown: putdown point
+        :return: none
+        """
         my_code.move_orrian_algo(pickup, putdown)
 
     def next_brick_in_x_row(putdown):
+        """
+        :param putdown: putdown point
+        :return: none
+        """
         putdown[0] += my_block.block_l
         my_code.set_goto_point(putdown[0], putdown[1], putdown[2])
         my_code.set_placement_point()
@@ -119,3 +145,4 @@ def test3():
 
 
 test3()
+my_utils.show_path()
