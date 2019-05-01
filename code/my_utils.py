@@ -2,13 +2,11 @@
 Aaron Pickard
 ajp2235
 Spring 2019
-main.py
-This file contains utility functions that don't really belong anywhere else.
+my_utils.py
+This file contains utility functions that could go in a variety of locations.
 This file supports Project JENGA, a final project in the Spring 2019 semester of
 MEIE 4810 Introduction to Human Spaceflight at Columbia University.
 """
-import csv
-from mpl_toolkits import mplot3d
 import csv
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -18,18 +16,22 @@ fig = plt.figure()
 ax = plt.axes(projection='3d')
 
 def in_to_mm(input):
+    """
+    :param input: in inches
+    :return: output, which is inches converted to mm
+    """
     output = input/0.039370
     return output
 
 def map_from_arduino(x, in_min, in_max, out_min, out_max):
     """
     Code ported from Arduino, at https://www.arduino.cc/reference/en/language/functions/math/map/
-    :param x:
+    :param x: input value to be converted
     :param in_min:
     :param in_max:
     :param out_min:
     :param out_max:
-    :return:
+    :return: the mapping of the input in the output coordinate frame
     """
     temp = (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
     output = round(temp, 2)
@@ -37,6 +39,11 @@ def map_from_arduino(x, in_min, in_max, out_min, out_max):
 
 
 def find_max_z_value(file_name):
+    """
+    :param file_name: name of a .csv file containing [x,y,z] data points assumed to be in a cartesian coordinate frame
+    :return: print statement identifying the maximum z-value & the point where it happens
+             in a local cartesian coordinate frame
+    """
     x = []
     y = []
     z = []
@@ -54,6 +61,12 @@ def find_max_z_value(file_name):
 
 
 def find_illegal_tether_length(file_name, tether_len):
+    """
+    :param file_name: name of a .csv file with tether lengths
+    :param tether_len: length of tether
+    :return: print statements identifying points where one tether's length exceeds tether_len, which is a problem,
+             because then the tether may detach from the base station
+    """
     x = []
     y = []
     z = []
@@ -90,9 +103,13 @@ def find_illegal_tether_length(file_name, tether_len):
                 pass
         if illegal == 0:
             print("NO ILLEGAL TETHER LENGTH FOUND")
-            print("ALL TETHER LENGTHS BETWEEN 0 AND " + str(tether_len) + " IN THE INSTRUCTION SET")
+            print("ALL TETHER LENGTHS IN THE INSTRUCTION SET ARE LESS THAN " + str(tether_len) + "")
 
 def show_path():
+    """
+    :return: matplotlib  plot of path taken by end effector to place bricks in assembling the structure defined by
+             output_coordinates.csv
+    """
     x = []
     y = []
     z = []
@@ -118,6 +135,10 @@ def show_path():
     plt.show()
 
 def show_path_2():
+    """
+    :return: none
+             FUNCTION NOT FUNCTIONAL, DEVELOPMENT STOPPED
+    """
     x = []
     y = []
     z = []
@@ -153,6 +174,9 @@ def show_path_2():
 
 
 def show_putdown_points():
+    """
+    :return: matplotlib plot of all the points at which bricks are released, based on 'output_points.csv'
+    """
     x = []
     y = []
     z = []
