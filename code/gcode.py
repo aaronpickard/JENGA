@@ -60,29 +60,39 @@ class GCode(object):
             pass
         if self.output_points is not None:
             pass
-        # COLOR SECTION
-        start = 0.0
-        stop = 1.0
-        number_of_lines = 1000
-        cm_subsection = linspace(start, stop, number_of_lines)
-
-        colors = [cm.jet(x) for x in cm_subsection]
-    # def set_output_file(self, f):
-        # self.output_file = f
 
     def set_neutral(self):
+        """
+        :return: none
+        """
         self.neutral_point = self.goto_point
 
     def set_pickup_point(self):
+        """
+        :return: none
+        """
         self.pickup_point = self.goto_point
 
     def set_placement_point(self):
+        """
+        :return: none
+        """
         self.placement_point = self.goto_point
 
     def set_goto_point(self, a, b, c):
+        """
+        :param a: x value of goto point
+        :param b: y value of goto point
+        :param c: z value of goto point
+        :return: none
+        """
         self.goto_point = [a, b, c]
 
     def set_feed_rate(self, f):   # feed rate in mm/m
+        """
+        :param f: desired feed rate (should be mm/s)
+        :return: none
+        """
         self.feed_rate = f
         if self.print_to_terminal == True:
             print("G1 F" + str(self.feed_rate) + ";")
@@ -92,6 +102,9 @@ class GCode(object):
             file.close()
 
     def set_units(self):
+        """
+        :return: none
+        """
         if self.print_to_terminal == True:
             print("G21 ; This program requires operations with the gcode millemeter setting")
         if self.output_file is not None:
@@ -100,16 +113,24 @@ class GCode(object):
             file.close()
 
     def set_separation_height(self, h):
+        """
+        :param h: desired separation height (vertical dist between pickup/putdown points and transfer between them)
+        :return: none
+        """
         self.separation_height = h
 
     def set_step_size(self, s):
+        """
+        :param s: desired step size (max [x,y,z] distance traversed in any direction in 1 step)
+        :return: none
+        """
         self.step_size = s
 
     def pickup_brick(self, place):
         """
-        :param place: This parameter indicates the place at which the brick will be placed.
-                      The placement assembly should be here already when the function is called.
-        :return: Nothing
+        :param place: the point at which the brick is picked up
+                      (the end effector should be at this point when the function is called)
+        :return: none
         """
         place_x = place[0]
         place_y = place[1]
@@ -120,9 +141,9 @@ class GCode(object):
 
     def putdown_brick(self, place):
         """
-        :param place: This parameter indicates the place at which the brick will be placed.
-                      The placement assembly should be here already when the function is called.
-        :return: Nothing
+        :param place: the point at which the brick will be placed
+                      (the end effector should be here already when the function is called)
+        :return: none
         """
         place_x = place[0]
         place_y = place[1]
@@ -134,6 +155,12 @@ class GCode(object):
     def move_brick_to_placement(self, start, stop):
         # This function picks up a brick at the start point, moves it to the stop point, puts it down, and returns to
         # the start point.
+        # TODO DEPRECATE THIS FUNCTION (leave the development notes)
+        """
+        :param start: pickup point
+        :param stop: placement point
+        :return: none
+        """
         """
         Development notes
         LINEAR INTERPOLATION gcode ALGORITHM (getting to place and from it)
@@ -176,6 +203,11 @@ class GCode(object):
         # Return to starting position by invoking this method but swapping the start and stop points
 
     def move_parabola_xz(self, start, stop):
+        """
+        :param start: start point of parabolic arc in [x,y,z]
+        :param stop: stop point of parabolic arc in [x,y,z]
+        :return: none
+        """
         # Moves via parabolic arc in the xz frame
         start_x = start[0]
         start_z = start[2]
@@ -191,6 +223,11 @@ class GCode(object):
         #  Does this limit the kinds of structures I can build?
 
     def move_parabola_yz(self, start, stop):
+        """
+        :param start: start point of parabolic arc in [x,y,z]
+        :param stop: stop point of parabolic arc in [x,y,z]
+        :return: none
+        """
         # Moves via parabolic arc in the yz frame
         start_y = start[1]
         start_z = start[2]
@@ -205,6 +242,12 @@ class GCode(object):
         #  required for the move) by allowing more distance to be gained in horizontal motion?
 
     def move_parabola_xyz(self, start, stop):
+        """
+        :param start: start point of parabolic arc in [x,y,z]
+        :param stop: stop point of parabolic arc in [x,y,z]
+        :return: none
+        """
+        # TODO DEPRECATE THIS FUNCTION
         # NOT OPERATIONAL
         # Moves via parabolic arc FIRST in the xz frame and THEN in the yz frame,
         # combining the two move_parabola_wz() functions
@@ -268,6 +311,11 @@ class GCode(object):
 
     def move_vertical(self, start, h):
         """
+        :param start: start point
+        :param h: height UP traversed by the function.
+        :return: none
+        """
+        """
         1 get current location (x,y,z)
         2 get intermediate end effector positions (x,y,z,p) - p is boolean
         3 iterate through each intermediate position and from that convert to tether length
@@ -306,6 +354,12 @@ class GCode(object):
     def move_horizontal(self, start, stop):
         # This method works by stepping between coplanar start and stop points linearly.
         # Usage is recommended only for points in the same z-plane (height).
+        # TODO DEPRECATE THIS FUNCTION
+        """
+        :param start: start point of motion, theoretically in 3 DOF but practically coplanar in the z plane
+        :param stop: stop point of motion
+        :return: none
+        """
         """
         1 get current location (x,y,z)
         2 get intermediate end effector positions (x,y,z,p) - p is boolean
@@ -352,6 +406,10 @@ class GCode(object):
             # TODO how do I keep this function from running away in an infinite loop?
 
     def print_comment(self, text):
+        """
+        :param text: text of comment to be printed to gcode output file
+        :return: none
+        """
         if self.print_to_terminal is True:
             print("; "+str(text))
         if self.output_file is not None:
@@ -360,6 +418,10 @@ class GCode(object):
             file.close()
 
     def print_command(self, position_list):
+        """
+        :param position_list: [x,y,z] position list to be translated into G-Code for the base stations
+        :return: none
+        """
         """
         Special cases
         x = -999 print M8 (pickup) & break
@@ -490,6 +552,9 @@ class GCode(object):
                 file.close()
 
     def set_tether_length(self):
+        """
+        :return: none
+        """
         self.ul_dist = math.sqrt((self.ul_base[0])**2+(self.ul_base[1])**2)
         self.ur_dist = math.sqrt((self.ur_base[0]) ** 2 + (self.ur_base[1]) ** 2)
         self.ll_dist = math.sqrt((self.ll_base[0]) ** 2 + (self.ll_base[1]) ** 2)
@@ -499,7 +564,7 @@ class GCode(object):
         """
         :param start: [x,y,z] start position
         :param stop: [x,y,z] stop position
-        :return: nothing
+        :return: none
         1 find length in XY plane between points
         2 create 2D map with start at (0,z) and second point at (length,Z)
         3 calculate discretized parabola for 2D map case
@@ -568,6 +633,12 @@ class GCode(object):
 
     def move_down(self, start, h):
         """
+        :param start: start position in [x,y,z] frame
+        :param h: height to move DOWN
+        :return: none
+        """
+        """
+        This function handles vertical motion down, and is essentially the opposite of move_vertical()
         1 get current location (x,y,z)
         2 get intermediate end effector positions (x,y,z,p) - p is boolean
         3 iterate through each intermediate position and from that convert to tether length
