@@ -22,22 +22,50 @@ class Block(object):
         self.pt_2_w_offset = 12.5
 
     def set_block_length(self, n):
+        """
+        :param n: new block length
+        :return: none
+        """
         self.block_l = n
 
     def set_block_height(self, n):
+        """
+        :param n: new block height
+        :return: none
+        """
         self.block_h = n
 
     def set_block_width(self, n):
+        """
+        :param n: new block width
+        :return: none
+        """
         self.block_w = n
 
     def set_pt1_l_offset(self, n):
+        """
+        :param n: new block point 1 length offset
+        :return: none
+        """
         self.pt_1_l_offset = n
 
     def set_pt1_w_offset(self, n):
+        """
+        :param n: new block point 1 width offset
+        :return: none
+        """
         self.pt_1_w_offset = n
 
     def set_pt2_l_offset(self, n):
+        """
+        :param n: new block point 2 length offset
+        :return: none
+        """
         self.pt_2_l_offset = n
 
     def set_pt2_w_offset(self, n):
+        """
+        :param n: new block point 2 width offset
+        :return: none
+        """
         self.pt_2_w_offset = n
