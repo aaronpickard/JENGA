@@ -21,5 +21,3 @@ my_utils.find_max_z_value('output_instructions.csv')
 my_utils.find_illegal_tether_length('output_instructions.csv', 2250)
 my_utils.show_path()
 my_utils.show_putdown_points()
-
-#block pickup location
