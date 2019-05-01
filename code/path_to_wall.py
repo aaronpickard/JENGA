@@ -27,18 +27,41 @@ class Basic(object):
         self.z = 0
 
     def load_pickup(self, x, y, z):
+        """
+        :param x: x coordinate of pickup point
+        :param y: y coordinate of pickup point
+        :param z: z coordinate of pickup point
+        :return: none
+        """
         g.set_goto_point(x, y, z)
         g.set_pickup_point()
 
     def load_putdown(self, x, y, z):
+        """
+        :param x: x coordinate of putdown point
+        :param y: y coordinate of putdown point
+        :param z: z coordinate of putdown point
+        :return: none
+        """
         g.set_goto_point(x, y, z)
         g.set_placement_point()
 
     def load_neutral(self, x, y, z):
+        """
+        :param x: x coordinate of neutral point
+        :param y: y coordinate of neutral point
+        :param z: z coordinate of neutral point
+        :return: none
+        """
         g.set_goto_point(x, y, z)
         g.set_neutral()
 
     def move_brick(self, pickup, putdown):
+        """
+        :param pickup: pickup point in [x,y,z] format
+        :param putdown: putdown point in  [x,y,z] format
+        :return: none
+        """
         g.pickup_brick(pickup)
         g.move_vertical(pickup, g.separation_height)
         pickup = [pickup[0], pickup[1], (pickup[2] + g.separation_height)]
@@ -48,6 +71,9 @@ class Basic(object):
         g.putdown_brick(g.current_point)
 
     def move_back_to_pickup(self):
+        """
+        :return: none
+        """
         pickup = g.pickup_point
         g.move_vertical(g.current_point, g.separation_height)
         pickup = [pickup[0], pickup[1], (pickup[2] + g.separation_height)]
@@ -56,23 +82,51 @@ class Basic(object):
         g.move_down(pickup, g.separation_height)
 
     def move_lateral(self, pickup, putdown):
+        """
+        :param pickup: pickup point in [x,y,z] format
+        :param putdown: putdown point in [x,y,z] format
+        :return: none
+        """
         g.move_orrian_algo(pickup, putdown)
 
     def next_brick_in_x_row(self, putdown):
+        """
+        :param putdown: putdown point in [x,y,z] format to be adjusted
+        :return: none
+        """
         putdown[0] += brick.block_l
         self.load_putdown(putdown[0], putdown[1], putdown[2])
 
     def next_brick_in_y_row(self, putdown):
+        """
+        :param putdown: putdown point in [x,y,z] format to be adjusted
+        :return: none
+        """
         putdown[1] += brick.block_w
         self.load_putdown(putdown[0], putdown[1], putdown[2])
 
     def next_horizontal_x_row(self, putdown):
-        pass
+        """
+        :param putdown: putdown point in [x,y,z] format to be adjusted
+        :return: none
+        """
+        putdown[1] += brick.block_w
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
 
     def next_horizontal_y_row(self, putdown):
-        pass
+        """
+        :param putdown: putdown point in [x,y,z] format to be adjusted
+        :return: none
+        """
+        putdown[0] += brick.block_l
+        self.load_putdown(putdown[0], putdown[1], putdown[2])
 
     def next_vertically_stacked_row(self, putdown, offset_sign):
+        """
+        :param putdown: putdown point in [x,y,z] format to be adjusted
+        :param offset_sign: sign of half-brick-length offset for the next row - valid inputs are '+', '-', or '0'
+        :return: none
+        """
         if offset_sign == "+":
             putdown[0] = putdown[0] + (brick.block_l/2)
         elif offset_sign == "-":
@@ -87,6 +141,9 @@ class Basic(object):
 
 
     def initialize(self):
+        """
+        :return: none, but sets up environment for algo to execute
+        """
         os.remove("output_coordinates.csv")
         os.remove("output_instructions.csv")
         os.remove("output_points.csv")
@@ -99,6 +156,9 @@ class Basic(object):
 
 
     def algo2(self):
+        """
+        :return: none; produces .txt file with G-Code for a notional 12-brick wall and .csv visualization files
+        """
         self.initialize()
         pickup = [-500, 0, 25]
         self.load_pickup(pickup[0], pickup[1], pickup[2])
@@ -144,6 +204,9 @@ class Basic(object):
 
 
     def algo(self):
+        """
+        :return: none; same functionality as algo2() but deprecated
+        """
         os.remove("output_coordinates.csv")
         os.remove("output_instructions.csv")
         os.remove("output_points.csv")
@@ -276,6 +339,11 @@ class Fancy(object):
 
 
     def algo(self, g, σ_limit):
+        """
+        :param g: graph representation of the structure
+        :param σ_limit: stability limit of structure
+        :return: path to assemble structure
+        """
         pass
 
     """
@@ -291,6 +359,9 @@ class Fancy(object):
 
 
     def backtrack(self):
+        """
+        :return: none; deletes bad instructions as helper function to Fancy algo()
+        """
         while choices is None:
             # TODO pop path_stack
             if path_stack is None:
